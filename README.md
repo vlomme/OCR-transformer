@@ -1,7 +1,7 @@
 # OCR-transformer
 CNN + transformer model
 
-# Using
+# Using [colab](https://colab.research.google.com/github/vlomme/OCR-transformer/blob/main/OCR_transformer.ipynb)
 ## Preferences
 Edit it hparams.py
 
