@@ -229,13 +229,16 @@ def validate(model, dataloader, show=50):
     return error_p/len(dataloader)*100, error_w/len(dataloader)*100
 
 # Предсказания
-def prediction():
+def prediction(plot_img = False):
     os.makedirs('/output', exist_ok=True)
     model.eval()
     
     with torch.no_grad():
         for filename in os.listdir('/data'):
             img = cv2.imread('/data/' + filename,cv2.IMREAD_GRAYSCALE)#
+            if plot_img:
+                plt.imshow(img)
+                plt.show()            
             img = process_image(img).astype('uint8')
             img = img/img.max() 
             img = np.transpose(img,(2,0,1))
@@ -353,12 +356,20 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-r", "--run", default='generate', help=\
         "Enter the function you want to run | Введите функцию, которую надо запустить (train, generate)")
+    parser.add_argument("-c", "--checkpoint", default='', help="Чекпоинт")
+    parser.add_argument("-p", "--plot_img", default=False, help="Чекпоинт")
+    
     args = parser.parse_args()
     if args.run == 'train' or args.run == 't':
         it_train = True
     else:
         it_train = False
-    
+    if args.checkpoint:
+        hp.chk = args.checkpoint
+    if args.plot_img:
+        plot_img = True
+    else:
+        plot_img = False
     # Загрузить частоту слов
     if it_train:
         if hp.chk:
@@ -451,4 +462,4 @@ if __name__ == '__main__':
     if it_train:
         train_all(best_eval_loss_cer)
     else:
-        prediction()
+        prediction(plot_img)
