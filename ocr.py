@@ -234,8 +234,8 @@ def prediction(plot_img = False):
     model.eval()
     
     with torch.no_grad():
-        for filename in os.listdir('/data'):
-            img = cv2.imread('/data/' + filename,cv2.IMREAD_GRAYSCALE)#
+        for filename in os.listdir(hp.test_dir):
+            img = cv2.imread(hp.test_dir + filename,cv2.IMREAD_GRAYSCALE)#
             if plot_img:
                 plt.imshow(img)
                 plt.show()            
@@ -357,7 +357,8 @@ if __name__ == '__main__':
     parser.add_argument("-r", "--run", default='generate', help=\
         "Enter the function you want to run | Введите функцию, которую надо запустить (train, generate)")
     parser.add_argument("-c", "--checkpoint", default='', help="Чекпоинт")
-    parser.add_argument("-p", "--plot_img", default=False, help="Чекпоинт")
+    parser.add_argument("-p", "--plot_img", default=False, help="Показывать изображение")
+    parser.add_argument("-d", "--test_dir", default='', help="Чекпоинт")
     
     args = parser.parse_args()
     if args.run == 'train' or args.run == 't':
@@ -370,6 +371,10 @@ if __name__ == '__main__':
         plot_img = True
     else:
         plot_img = False
+    if args.test_dir:
+        hp.test_dir = args.test_dir
+    
+    
     # Загрузить частоту слов
     if it_train:
         if hp.chk:
