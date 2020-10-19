@@ -1,0 +1,4 @@
+{
+  "image": "odsai/python-gpu",
+  "entry_point": "python ocr.py"
+}
