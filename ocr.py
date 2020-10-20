@@ -46,7 +46,7 @@ class TextLoader(torch.utils.data.Dataset):
     def __getitem__(self, index):
         img = self.name_image[index]
         if not self.eval:
-            img = np.transpose(img,(2,0,1))
+            img = self.transform(img)
             img = img / img.max()
             img = img**(random.random()*0.7 + 0.6)
         else:
@@ -229,16 +229,13 @@ def validate(model, dataloader, show=50):
     return error_p/len(dataloader)*100, error_w/len(dataloader)*100
 
 # Предсказания
-def prediction(plot_img = False):
+def prediction():
     os.makedirs('/output', exist_ok=True)
     model.eval()
     
     with torch.no_grad():
         for filename in os.listdir(hp.test_dir):
             img = cv2.imread(hp.test_dir + filename,cv2.IMREAD_GRAYSCALE)#
-            if plot_img:
-                plt.imshow(img)
-                plt.show()            
             img = process_image(img).astype('uint8')
             img = img/img.max() 
             img = np.transpose(img,(2,0,1))
@@ -287,16 +284,17 @@ def train_all(best_eval_loss_cer):
         start_time = time.time()
         print("-----------train------------")
         train_loss = train(model, optimizer, criterion, train_loader)
-        scheduler.step()
         print("-----------valid------------")
         valid_loss = evaluate(model, criterion, val_loader)
         print("-----------eval------------")
         eval_loss_cer,eval_accuracy  = validate(model, val_loader, show=10)
+        scheduler.step(eval_loss_cer)
         valid_loss_all.append(valid_loss)
         train_loss_all.append(train_loss)
         eval_loss_cer_all.append(eval_loss_cer)
         eval_accuracy_all.append(eval_accuracy)
         if eval_loss_cer < best_eval_loss_cer:
+            count_bad = 0
             best_eval_loss_cer = eval_loss_cer
             torch.save({
                       'model': model.state_dict(),
@@ -335,7 +333,7 @@ def train_all(best_eval_loss_cer):
         plt.clf()
         plt.plot(eval_accuracy_all[-20:])
         plt.savefig('log/eval_accuracy.png')
-        if count_bad>4:
+        if count_bad>19:
             break
 
 
@@ -357,7 +355,6 @@ if __name__ == '__main__':
     parser.add_argument("-r", "--run", default='generate', help=\
         "Enter the function you want to run | Введите функцию, которую надо запустить (train, generate)")
     parser.add_argument("-c", "--checkpoint", default='', help="Чекпоинт")
-    parser.add_argument("-p", "--plot_img", default=False, help="Показывать изображение")
     parser.add_argument("-d", "--test_dir", default='', help="Чекпоинт")
     
     args = parser.parse_args()
@@ -367,10 +364,6 @@ if __name__ == '__main__':
         it_train = False
     if args.checkpoint:
         hp.chk = args.checkpoint
-    if args.plot_img:
-        plot_img = True
-    else:
-        plot_img = False
     if args.test_dir:
         hp.test_dir = args.test_dir
     
@@ -459,12 +452,12 @@ if __name__ == '__main__':
     
     optimizer = optim.AdamW(model.parameters(), lr=hp.lr)
     criterion = nn.CrossEntropyLoss(ignore_index=p2idx['PAD'])
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, 50, eta_min=0, last_epoch=-1)
-
+    #scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, 50, eta_min=0, last_epoch=-1)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
     print(f'The model has {count_parameters(model):,} trainable parameters')
     #print(model)
     
     if it_train:
         train_all(best_eval_loss_cer)
     else:
-        prediction(plot_img)
+        prediction()
